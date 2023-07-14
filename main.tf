@@ -12,16 +12,6 @@ resource "aws_key_pair" "ace_key" {
   public_key = tls_private_key.avtx_key.public_key_openssh
 }
 
-# Create an Aviatrix Azure Account
-resource "aviatrix_account" "azure_account" {
-  account_name        = var.azure_account_name
-  cloud_type          = 8
-  arm_subscription_id = var.azure_subscription_id
-  arm_directory_id    = var.azure_tenant_id
-  arm_application_id  = var.azure_client_id
-  arm_application_key = var.azure_client_secret
-}
-
 # AWS Transit Modules
 module "aws_transit_1" {
   source              = "terraform-aviatrix-modules/mc-transit/aviatrix"
@@ -51,39 +41,6 @@ module "aws_spoke_1" {
   transit_gw      = module.aws_transit_1.transit_gateway.gw_name
 }
 
-module "azure_spoke_2" {
-  source          = "terraform-aviatrix-modules/mc-spoke/aviatrix"
-  version         = "1.5.0"
-  cloud           = "Azure"
-  account         = aviatrix_account.azure_account.account_name
-  region          = var.azure_spoke2_region
-  name            = var.azure_spoke2_name
-  cidr            = var.azure_spoke2_cidr
-  instance_size   = var.azure_spoke_instance_size
-  ha_gw           = var.ha_enabled
-  network_domain  = aviatrix_segmentation_network_domain.BU2.domain_name
-  transit_gw      = module.aws_transit_1.transit_gateway.gw_name
-}
-
-# Multi-Cloud Segmentation
-resource "aviatrix_segmentation_network_domain" "BU1" {
-  domain_name = "BU1"
-  depends_on = [
-    module.aws_transit_1
-  ]
-}
-resource "aviatrix_segmentation_network_domain" "BU2" {
-  domain_name = "BU2"
-  depends_on = [
-    module.aws_transit_1
-  ]
-}
-  
-#resource "aviatrix_segmentation_network_domain_connection_policy" "BU1_BU2" {
-#  domain_name_1 = "BU1"
-#  domain_name_2 = "BU2"
-#  depends_on    = [aviatrix_segmentation_network_domain.BU1, aviatrix_segmentation_network_domain.BU2]
-#} 
 
 
 
